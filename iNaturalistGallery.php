@@ -93,6 +93,13 @@ class iNaturalistGallery {
             }
         }
         $html .= '</div>';
+
+        // Add the link to all observations for the species
+        $speciesNameEncoded = urlencode( $speciesName );
+        $allObservationsUrl = "https://www.inaturalist.org/observations?verifiable=any&place_id=any&field:Provisional%20Species%20Name=$speciesNameEncoded";
+        $html .= '<div style="text-align: center; margin-top: 20px;">';
+        $html .= "<a href=\"$allObservationsUrl\" target=\"_blank\" style=\"text-decoration: none; color: #007BFF; font-weight: bold;\">All iNaturalist observations for $speciesName</a>";
+        $html .= '</div>';
     
         return $html;
     }
