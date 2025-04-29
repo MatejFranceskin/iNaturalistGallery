@@ -1,0 +1,21 @@
+{
+    "name": "iNaturalistGallery",
+    "version": "1.0",
+    "author": [
+        "Your Name"
+    ],
+    "description": "Displays an iNaturalist gallery based on a provisional species name.",
+    "url": "https://www.mediawiki.org/wiki/Extension:iNaturalistGallery",
+    "license-name": "MIT",
+    "type": "parserhook",
+    "requires": {
+        "MediaWiki": ">= 1.31.0"
+    },
+    "AutoloadClasses": {
+        "iNaturalistGallery": "iNaturalistGallery.php"
+    },
+    "Hooks": {
+        "ParserFirstCallInit": "iNaturalistGallery::onParserFirstCallInit"
+    },
+    "manifest_version": 2
+}
