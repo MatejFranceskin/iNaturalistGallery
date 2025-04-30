@@ -13,10 +13,11 @@ $wgExtensionCredits['parserhook'][] = [
     'url' => 'https://www.mediawiki.org/wiki/Extension:iNaturalistGallery',
 ];
 
+// Register the parser hook
 $wgHooks['ParserFirstCallInit'][] = 'iNaturalistGallery::onParserFirstCallInit';
 
 class iNaturalistGallery {
-    private static $logFile = '/var/www/vhosts/mycomap.org/wiki/logs/inat_debug.log';
+    private static $logFile = '/tmp/inat_debug.log';
 
     /****
      * Registers the <iNaturalistGallery> parser hook with the MediaWiki parser.
