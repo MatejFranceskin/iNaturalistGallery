@@ -18,15 +18,36 @@ $wgHooks['ParserFirstCallInit'][] = 'iNaturalistGallery::onParserFirstCallInit';
 class iNaturalistGallery {
     private static $logFile = '/var/www/vhosts/mycomap.org/wiki/logs/inat_debug.log';
 
+    /****
+     * Registers the <iNaturalistGallery> parser hook with the MediaWiki parser.
+     *
+     * @return bool True on successful hook registration.
+     */
     public static function onParserFirstCallInit(Parser $parser) {
         $parser->setHook('iNaturalistGallery', [self::class, 'renderGallery']);
         return true;
     }
 
+    /****
+     * Writes a timestamped debug message to the extension's log file.
+     *
+     * @param string $message The debug message to log.
+     */
     private static function logDebug($message) {
         error_log(date('[Y-m-d H:i:s] ') . $message . "\n", 3, self::$logFile);
     }
 
+    /**
+     * Renders an iNaturalist photo gallery for a given species name, supporting both standard taxonomy and provisional species names.
+     *
+     * Determines the search method based on the presence of quotes in the species name: if quotes are present, searches iNaturalist observations by the "Provisional Species Name" field; otherwise, attempts to resolve the species to a taxon ID and searches for observations with a DNA Barcode ITS field. Displays up to 24 observation photos in a grid, includes a summary of the search, and provides a link to the full list of relevant iNaturalist observations.
+     *
+     * @param mixed $input Unused input parameter from the parser hook.
+     * @param array $args Arguments passed to the parser tag, including an optional 'species' key.
+     * @param Parser $parser MediaWiki parser instance.
+     * @param PPFrame $frame Parser frame.
+     * @return string HTML markup for the gallery or an error message if no observations are found.
+     */
     public static function renderGallery($input, array $args, Parser $parser, PPFrame $frame) {
         $speciesName = isset($args['species']) ? $args['species'] : $parser->getTitle()->getText();
         if (empty($speciesName)) {
