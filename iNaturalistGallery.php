@@ -114,11 +114,11 @@ class iNaturalistGallery {
         // If standard taxonomy lookup failed or was skipped, try provisional name search
         if (empty($data['results'])) {
             // Handle field:Provisional Species Name parameter properly
-            $provisionalFieldKey = urlencode('field:Provisional Species Name');
-            $provisionalFieldValue = urlencode($speciesName);
+            // key MUST stay literal, only the value is encoded
+            $provisionalFieldKey   = 'field:Provisional%20Species%20Name';
+            $provisionalFieldValue = rawurlencode($speciesName);
             $queryString = "order_by=id&order=desc&page=1&spam=false&{$provisionalFieldKey}={$provisionalFieldValue}&per_page=100&return_bounds=true";
             $url = "$apiUrl?$queryString";
-
             self::logDebug("Checking Provisional Species Name: '$speciesName'");
             self::logDebug("Provisional API URL: $url");
 
