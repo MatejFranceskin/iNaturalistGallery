@@ -138,10 +138,10 @@ class iNaturalistGallery {
 
         // Summary line - format differently based on whether it's standard taxonomy or provisional
         $count = $data['total_results'] ?? count($data['results']);
-        
         if ($foundBy === "Provisional Species Name") {
             // New format for provisional species names
-            $summary = "<p style='font-weight:bold;'>Searched for iNaturalist Provisional Species Name <em>$speciesName</em>; total results: <strong>$count</strong>.</p>";
+            $safeName = htmlspecialchars($speciesName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $summary  = "<p style='font-weight:bold;'>Searched for iNaturalist Provisional Species Name <em>{$safeName}</em>; total results: <strong>{$count}</strong>.</p>";
         } else {
             // Keep existing format for standard taxonomy
             $summary = "<p style='font-weight:bold;'>Searched iNaturalist $foundBy for <em>$speciesName</em> with ITS sequence; total results: <strong>$count</strong>.</p>";
