@@ -207,22 +207,28 @@ class iNaturalistGallery {
         self::logDebug("Number of photos in regular mode: " . count($regularPhotos));
         self::logDebug("Number of photos in all photos mode: " . count($allPhotos));
 
-        // Display status texts
-        $regularStatusText = "Showing one photo from each of " . count($regularPhotos) . " observations. These observations contain a total of $totalPhotoCount photos.";
+        // Create safe, JSON-encoded JavaScript strings for use in the script
+        $regularStatusText = json_encode("Showing one photo from each of " . count($regularPhotos) . " observations. These observations contain a total of $totalPhotoCount photos.");
         
         if ($foundBy === "Provisional Species Name") {
-            $allPhotosStatusText = "Showing $totalPhotoCount photos of $speciesName.";
-            $allPhotosLinkText = "Show photos of $speciesName";
+            $safeSpeciesName = json_encode($speciesName);
+            $allPhotosStatusText = json_encode("Showing $totalPhotoCount photos of $speciesName.");
+            $allPhotosLinkText = json_encode("Show photos of $speciesName");
         } else {
-            $allPhotosStatusText = "Showing $totalPhotoCount photos of sequenced observations of $speciesName.";
-            $allPhotosLinkText = "Show photos of sequenced observations of $speciesName";
+            $safeSpeciesName = json_encode($speciesName);
+            $allPhotosStatusText = json_encode("Showing $totalPhotoCount photos of sequenced observations of $speciesName.");
+            $allPhotosLinkText = json_encode("Show photos of sequenced observations of $speciesName");
         }
+        
+        // Extract the string content (without JSON quotes) for use in HTML
+        $regularStatusTextHtml = htmlspecialchars(json_decode($regularStatusText), ENT_QUOTES);
+        $allPhotosLinkTextHtml = htmlspecialchars(json_decode($allPhotosLinkText), ENT_QUOTES);
 
         // Build gallery HTML
         $html = $summary;
         
         // Status text (changes based on current view)
-        $html .= "<p id=\"{$galleryId}_status\">$regularStatusText</p>";
+        $html .= "<p id=\"{$galleryId}_status\">$regularStatusTextHtml</p>";
         
         // Regular gallery container (one photo per observation) - visible by default
         $html .= "<div id=\"{$galleryId}_regular_container\" style=\"display: block;\">";
@@ -273,11 +279,11 @@ class iNaturalistGallery {
         $html .= "<br><br>";
         
         // Toggle buttons with more reliable onclick handlers
-        $html .= "<button id=\"{$galleryId}_show_all\" style=\"background: none; border: none; color: #007BFF; text-decoration: underline; cursor: pointer; font-weight: bold; padding: 0;\">$allPhotosLinkText</button>";
+        $html .= "<button id=\"{$galleryId}_show_all\" style=\"background: none; border: none; color: #007BFF; text-decoration: underline; cursor: pointer; font-weight: bold; padding: 0;\">$allPhotosLinkTextHtml</button>";
         $html .= "<button id=\"{$galleryId}_show_regular\" style=\"background: none; border: none; color: #007BFF; text-decoration: underline; cursor: pointer; font-weight: bold; padding: 0; display: none;\">Show one photo per observation</button>";
         $html .= '</div>';
         
-        // Better JavaScript toggle implementation
+        // Better JavaScript toggle implementation with properly encoded strings
         $parser->getOutput()->addHeadItem("
             <script type=\"text/javascript\">
             (function() {
@@ -305,7 +311,7 @@ class iNaturalistGallery {
                         allContainer.style.display = 'block';
                         showAllBtn.style.display = 'none';
                         showRegularBtn.style.display = 'inline';
-                        statusText.textContent = '$allPhotosStatusText';
+                        statusText.textContent = $allPhotosStatusText;
                         return false;
                     }
                     
@@ -316,7 +322,7 @@ class iNaturalistGallery {
                         regularContainer.style.display = 'block';
                         showRegularBtn.style.display = 'none';
                         showAllBtn.style.display = 'inline';
-                        statusText.textContent = '$regularStatusText';
+                        statusText.textContent = $regularStatusText;
                         return false;
                     }
                     
