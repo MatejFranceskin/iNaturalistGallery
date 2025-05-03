@@ -151,6 +151,7 @@ class iNaturalistGallery {
         $regularPhotos = [];
         $allPhotos = [];
         $totalPhotoCount = 0;
+        $locations = [];
         
         // Process all observations
         foreach ($data['results'] as $observation) {
@@ -201,6 +202,17 @@ class iNaturalistGallery {
                     self::logDebug("Added photo " . ($index + 1) . " from observation {$observation['id']} to all photos collection: $smallPhotoUrl");
                 }
             }
+            if (isset($observation['location']) && strpos($observation['location'], ',') !== false) {
+                list($latitude, $longitude) = explode(',', $observation['location']);
+                $locations[] = [
+                    'latitude' => trim($latitude),
+                    'longitude' => trim($longitude),
+                    'uri' => trim($observation['uri']),
+                    'photo' => isset($observation['photos'][0]['url']) ? $observation['photos'][0]['url'] : null
+                ];
+
+                self::logDebug("Observation ID: {$observation['id']} has location: $latitude, $longitude");
+            }
         }
         
         self::logDebug("Total photos found: $totalPhotoCount");
@@ -226,7 +238,115 @@ class iNaturalistGallery {
 
         // Build gallery HTML
         $html = $summary;
+        $parser->getOutput()->addHeadItem("
+            <script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>
+            <link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\" />
+            <script src=\"https://cdn.jsdelivr.net/npm/heatmap.js@2.0.5/build/heatmap.min.js\"></script>
+            <script src=\"https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js\"></script>
+        ", 'leaflet-heatmap');
+
+        // Add Leaflet heat map container
+        $html .= '<div id="heatmap_container" style="width: 100%; height: 500px; margin-bottom: 20px; position: relative;"></div>';
+        // Add Leaflet heat map script
+        $locationsJson = json_encode($locations);
+        $parser->getOutput()->addHeadItem("
+            <script type=\"text/javascript\">
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Initialize the Leaflet map
+                    var map = L.map('heatmap_container').setView([0, 0], 2);
         
+                    // Add OpenStreetMap tiles
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 18,
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+        
+                    // Configure the heatmap.js layer
+                    var heatmapLayer = new HeatmapOverlay({
+                        radius: 10,          // Initial radius of each heat point
+                        maxOpacity: 0.8,     // Maximum opacity of the heatmap
+                        scaleRadius: false,  // Disable automatic scaling (we'll handle it manually)
+                        useLocalExtrema: true,
+                        latField: 'lat',     // Latitude field in data
+                        lngField: 'lng',     // Longitude field in data
+                        valueField: 'value'  // Intensity field in data
+                    });
+        
+                    // Add the heatmap layer to the map
+                    map.addLayer(heatmapLayer);
+        
+                    // Prepare heatmap data
+                    var heatmapData = {
+                        max: 10, // Maximum intensity value
+                        data: $locationsJson.map(function(loc) {
+                            return {
+                                lat: loc.latitude,  // Latitude
+                                lng: loc.longitude, // Longitude
+                                value: 7            // Intensity (adjust as needed)
+                            };
+                        })
+                    };
+        
+                    // Set the heatmap data
+                    heatmapLayer.setData(heatmapData);
+
+                    // Add observation markers as blue dots
+                    $locationsJson.forEach(function(loc) {
+                        if (loc.latitude && loc.longitude && loc.uri) {
+                            // Create a custom blue dot icon
+                            var blueDotIcon = L.divIcon({
+                                className: 'blue-dot', // Custom class for styling
+                                iconSize: [10, 10],    // Size of the dot
+                                iconAnchor: [5, 5]     // Center the dot
+                            });
+
+                            // Create a marker with the custom icon
+                            var marker = L.marker([loc.latitude, loc.longitude], { icon: blueDotIcon }).addTo(map);
+
+                            // Add a click event to open the observation URI
+                            marker.on('click', function() {
+                                window.open(loc.uri, '_blank');
+                            });
+
+                            // Add a hover tooltip with the observation photo
+                            if (loc.photo) {
+                                marker.bindTooltip(
+                                    `<div style=\"text-align: center;\">
+                                    <img src=\"` + loc.photo + `\" alt=\"Observation Photo\" style=\"width: 100px; height: 100px; object-fit: cover; border-radius: 5px;\" />
+                                    </div>`,
+                                    { direction: 'top', offset: [0, -10], opacity: 0.9 }
+                                );
+                            }
+                        }
+                    });
+
+                    // Function to update the radius based on zoom level
+                    function updateHeatmapRadius() {
+                        var zoom = map.getZoom();
+                        var newRadius = zoom * 10; // Adjust the multiplier as needed
+                        heatmapLayer.cfg.radius = newRadius;
+                        heatmapLayer._reset(); // Reset the heatmap to apply the new radius
+                        console.log('Updated heatmap radius to:', newRadius);
+                    }
+        
+                    // Update the radius whenever the zoom level changes
+                    map.on('zoomend', updateHeatmapRadius);
+        
+                    // Initialize the radius based on the current zoom level
+                    updateHeatmapRadius();
+                });
+            </script>
+            <style>
+                .blue-dot {
+                    width: 10px;
+                    height: 10px;
+                    background-color: blue;
+                    border-radius: 50%;
+                    box-shadow: 0 0 5px rgba(0, 0, 255, 0.5); /* Optional glow effect */
+                }
+            </style>            
+        ", 'leaflet-heatmap-overlay');
+
         // Status text (changes based on current view)
         $html .= "<p id=\"{$galleryId}_status\">$regularStatusTextHtml</p>";
         
